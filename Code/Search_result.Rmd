@@ -1,0 +1,260 @@
+---
+title: "Enrichment"
+author: "Shotaro Watanabe"
+date: "2023/08/27 (Sun)"
+output: html_document
+---
+
+```{r library, warning=FALSE}
+library(dplyr)
+library(ggplot2)
+library(ggupset)
+library(reshape2)
+library(readr)
+library(svglite)
+library(stringr)
+library(org.Hs.eg.db)
+library(clusterProfiler)
+library(languageR)
+library(tm)
+library(igraph)
+source("Functions.R", echo=FALSE)
+source("Set_General_data.R", echo=FALSE)
+```
+
+```{r select gene}
+
+val_cell_types <- Cell_type_list[c(3:6,8,11)]
+
+MAGICAL <- read.csv("../../GSE/GSE220188/Magical_predict.csv")
+
+list_MAGICAL <- list()
+for (i in val_cell_types) {
+    list_MAGICAL[[i]] <- MAGICAL$Circuit.Genes[MAGICAL$Cell.type == i]
+}
+
+df_MAGICAL <- data.frame(category = val_cell_types,
+                         count = as.numeric(sapply(list_MAGICAL, length)) ) 
+
+TDUFE <- list()
+for (i in 1:length(val_cell_types)) {
+  this_cell_type <- val_cell_types[i]
+  PATH_TENSOR <- paste0("out_put_Tensor/", this_cell_type, "_Gene_tensor.rds")
+  PATH_index <- paste0("out_put_Tensor/", this_cell_type,"_index.rds")
+  this_RAW_TENSOR <- readRDS(PATH_TENSOR)
+  this_index <- readRDS(PATH_index)
+  TDUFE[[ val_cell_types[i] ]]  <- unlist(tableFeatures(this_RAW_TENSOR, this_index)[, 1])
+}
+
+df_TDUFE <- data.frame(category = val_cell_types,
+                         count = as.numeric(sapply(TDUFE, length)) )
+```
+
+```{r plot_count}
+
+combined_data <- rbind(df_MAGICAL, df_TDUFE)
+combined_data$Group <- rep(c("MAGICAL", "TDbasedUFE"), each = nrow(df_MAGICAL))
+
+p <- ggplot(combined_data, aes(x = category, y = count, fill = Group)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  geom_text(aes(label = count), position = position_dodge(width = 0.9), vjust = -0.5) +
+  theme(plot.title = element_text(face = "bold", size = 16)) + 
+  labs(title = "Gene counts by MAGICAL vs. TDbasedUFE",
+       x = "Cell type", y = "Count", fill = "Method")
+p
+```
+
+```{r intersect}
+
+df_inter <- list()
+for (i in val_cell_types) {
+  df_inter[[i]] <- intersect(list_MAGICAL[[i]], TDUFE[[i]])
+}
+
+inter_table <- data.frame(MAGICAL=df_MAGICAL$count, TDbasedUFE = df_TDUFE$count,
+                          BOTH = sapply(df_inter, length))
+inter_table <- cbind(inter_table, data.frame(rate = inter_table$BOTH/inter_table$MAGICAL))
+inter_table$rate[is.nan(inter_table$rate)] <- 0
+
+inter_table
+```
+
+```{r enrich_count}
+
+enrich_result <- list()
+ for (i in val_cell_types) {
+   for (j in c("GOBP","GOCC","GOMF","KEGG_Human")) {
+     if(file.exists(paste0("Enrich_Result/",i,"_",j,".csv"))){
+       read_data <- read.csv(paste0("Enrich_Result/",i,"_",j,".csv"))
+       enrich_result[[i]][[j]] <- read_data$Description
+     }else{
+       enrich_result[[i]][[j]] <- NA
+     }
+   }
+ }
+
+enrich_count <- data.frame()
+for (i in 1:length(val_cell_types)) {
+  this_count <- sapply(enrich_result[[val_cell_types[i]]], length)
+  enrich_count <- rbind(enrich_count, this_count)
+}
+enrich_count <- cbind(df_TDUFE$count, enrich_count)
+row.names(enrich_count) <- val_cell_types
+names(enrich_count) <- c("count","GOBP","GOCC","GOMF","KEGG_Human")
+enrich_count <- rbind(enrich_count, sum=colSums(enrich_count))
+enrich_count[enrich_count==1] <- 0
+
+enrich_count
+```
+
+```{r library_text, warning=FALSE}
+
+frequence_text <- function(text, black=NA, hide=FALSE){
+
+  corpus <- Corpus(VectorSource(text))
+  corpus <- tm_map(corpus, content_transformer(tolower))
+  
+  dtm <- DocumentTermMatrix(corpus)
+  freq <- colSums(as.matrix(dtm))
+  top_words <- order(freq, decreasing = TRUE)
+  text_df <- data.frame(word = names(freq)[top_words],
+                        freq = freq[top_words])
+  
+  if( !( all(is.na(black)) ) ){
+    text_df <- text_df[!(text_df$word %in% black),]
+  }
+  
+  if(hide){
+    text_df <- text_df[text_df$freq > 1,]
+  }
+  
+  row.names(text_df) <- 1:nrow(text_df)
+  
+  if(nrow(text_df) != 0){
+    row.names(text_df) <- 1:nrow(text_df) 
+    return(text_df)
+  }else{
+    warning("There are no valid words.")
+  }
+}
+
+lib_list <- c("GOBP","GOCC","GOMF","KEGG_Human")
+lib_path <- c("gmt/GO_Biological_Process_2023.txt", 
+              "gmt/GO_Cellular_Component_2023.txt",
+              "gmt/GO_Molecular_Function_2023.txt", 
+              "gmt/KEGG_2021_Human.txt")
+
+Library_freq <- list()
+for (i in 1:3) {
+    Library_freq[[lib_list[i]]] <- read_tsv(lib_path[i], col_names = NA)$X1
+    Library_freq[[lib_list[i]]] <- sub("(.*) \\(GO:\\d+\\)", "\\1", Library_freq[[lib_list[i]]])
+}
+Library_freq[[lib_list[4]]] <- read_tsv(lib_path[4], col_names = NA)$X1
+
+freq_list <- list()
+for (i in lib_list) {
+  freq_list[[i]] <- frequence_text(Library_freq[[i]], hide=FALSE)
+}
+
+
+```
+
+
+```{r textmining, warning=FALSE}
+
+erc_tables <- list()
+for (j in c("GOBP","GOCC","GOMF","KEGG_Human")) {
+text_data <- character()  
+  for (i in val_cell_types) {
+    text_data <- c(text_data, enrich_result[[i]][[j]])
+  }
+  fre_text <- frequence_text(text_data, hide=FALSE)
+  all_freq <- data.frame(all_freq = freq_list[[j]][freq_list[[j]]$word %in% fre_text$word,]$freq)
+  fre_text <- cbind(fre_text, all_freq)
+  fre_text <- cbind(fre_text, rate = fre_text$all_freq/length(Library_freq[[j]]) )
+  fre_text <- cbind(fre_text, prob = fre_text$freq/enrich_count["sum",j] )
+  this_sd <- sqrt(( fre_text$rate * (1 - fre_text$rate) ) * enrich_count["sum",j] )
+  this_z <- (fre_text$freq - fre_text$rate*enrich_count["sum",j])/ this_sd 
+  fre_text <- cbind(fre_text, Z_score = this_z )
+  fre_text <- cbind(fre_text, Q = (1 - pnorm(this_z, mean=0, sd=1) ) )
+  write.csv(fre_text, paste0("Text_mining/all_freq_", j, ".csv"))
+  erc_tables[[j]] = fre_text
+}
+
+erc_tables_cell <- list()
+if (TRUE){
+  for (i in val_cell_types) {
+    erc_tables_cell[[i]] <- list()
+    for (j in c("GOBP","GOCC","GOMF","KEGG_Human")) {
+      text_data <- enrich_result[[i]][[j]]
+      if(length(text_data) != 1){
+        fre_text <- frequence_text(text_data, hide=FALSE)
+        all_freq <- data.frame(all_freq = freq_list[[j]][freq_list[[j]]$word %in% fre_text$word,]$freq)
+        fre_text <- cbind(fre_text, all_freq)
+        fre_text <- cbind(fre_text, rate = fre_text$all_freq/length(Library_freq[[j]]) )
+        fre_text <- cbind(fre_text, prob = fre_text$freq/enrich_count[i,j] )
+        this_sd <- sqrt(( fre_text$rate * (1 - fre_text$rate) ) * enrich_count[i,j] )
+        this_z <- (fre_text$freq - fre_text$rate*enrich_count[i,j])/ this_sd 
+        fre_text <- cbind(fre_text, Z_score = this_z )
+        fre_text <- cbind(fre_text, Q = (1 - pnorm(this_z, mean=0, sd=1) ) )
+        write.csv(fre_text, paste0("Text_mining/freq_", i, "_", j, ".csv") )
+        erc_tables_cell[[i]][[j]] <- fre_text
+      }
+    }
+  }
+}
+
+fre_text
+```
+
+```{r min_search}
+min_mat <- array(dim=c(length(val_cell_types),4))
+rownames(min_mat) <- val_cell_types
+colnames(min_mat) <- c("GOBP","GOCC","GOMF","KEGG_Human")
+for (i in val_cell_types) {
+  for (j in c("GOBP","GOCC","GOMF","KEGG_Human")) {
+    min_mat[i,j] = min(erc_tables_cell[[i]][[j]]$Q)
+  }
+}
+
+```
+
+```{r family}
+
+enrich_result <- list()
+ for (j in c("GOBP","GOCC","GOMF","KEGG_Human")) {
+   if(file.exists(paste0("Enrich_Result/Family_",j,".csv"))){
+     read_data <- read.csv(paste0("Enrich_Result/Family_",j,".csv"))
+     enrich_result[[j]] <- read_data$Description
+   }else{
+     enrich_result[[j]] <- NA
+   }
+ }
+
+enrich_count <- data.frame()
+this_count <- sapply(enrich_result, length)
+this_count
+
+```
+
+```{r textmining, warning=FALSE}
+
+erc_tables <- list()
+for (j in c("GOBP","GOCC","GOMF","KEGG_Human")) {
+  text_data <- enrich_result[[j]]
+  fre_text <- frequence_text(text_data, hide=FALSE)
+  all_freq <- data.frame(all_freq = freq_list[[j]][freq_list[[j]]$word %in% fre_text$word,]$freq)
+  fre_text <- cbind(fre_text, all_freq)
+  fre_text <- cbind(fre_text, rate = fre_text$all_freq/length(Library_freq[[j]]) )
+  fre_text <- cbind(fre_text, prob = fre_text$freq/length(enrich_result[[j]]) )
+  this_sd <- sqrt(( fre_text$rate * (1 - fre_text$rate) ) * length(enrich_result[[j]]) )
+  this_z <- (fre_text$freq - fre_text$rate*length(enrich_result[[j]]))/ this_sd 
+  fre_text <- cbind(fre_text, Z_score = this_z )
+  fre_text <- cbind(fre_text, Q = (1 - pnorm(this_z, mean=0, sd=1) ) )
+  write.csv(fre_text, paste0("Text_mining/Family_", j, ".csv"))
+  erc_tables[[j]] = fre_text
+}
+
+fre_text
+```
+

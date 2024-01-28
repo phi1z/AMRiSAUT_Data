@@ -1,0 +1,223 @@
+---
+title: "Enrichment"
+author: "Shotaro Watanabe"
+date: "2023/08/09 (Thu)"
+output: html_document
+---
+
+```{r library, warning=FALSE}
+library(dplyr)
+library(ggplot2)
+library(ggupset)
+library(readr)
+library(svglite)
+library(stringr)
+library(TDbasedUFE)
+library(TDbasedUFEadv)
+library(org.Hs.eg.db)
+library(gridExtra)
+library(enrichplot)
+library(clusterProfiler)
+```
+
+```{r functions}
+source("Functions.R", echo=FALSE)
+
+get_genes_ID <- function(cell_type, Dataframe, Symbol=FALSE){
+  
+  PATH_TENSOR <- paste0("out_put_Tensor/", cell_type, "_Gene_tensor.rds")
+  PATH_INDEX <- paste0("out_put_Tensor/", cell_type,"_index.rds")
+  
+  if (!file.exists(PATH_INDEX)) {
+    stop(paste0(cell_type," HOSVD doesn't exist. Stop this R file Enrich.R."))
+  }
+  
+  #-------(Get HOSVD Data)-------- 
+  RAW_TENSOR <- readRDS(PATH_TENSOR)
+  index <- readRDS(PATH_INDEX)
+  genes <- unlist(tableFeatures(RAW_TENSOR, index)[, 1])
+  genes <- genes[!is.na(genes)]
+  entrez <- Dataframe$ID[ match(genes, Dataframe$Name) ]
+  entrez <- entrez[!is.na(entrez)]
+  entrez <- as.character(entrez)
+  
+  if(Symbol){
+    return(genes)
+  }else{
+    return(entrez)
+  }
+}
+
+```
+
+```{r set data}
+Family_Table <- read.csv("extented_genes/Family_Hub.csv")
+Genes_List <- list()
+for (i in unique(Family_Table$Cell)) {
+  Genes_List[[i]] <- Family_Table$Gene[Family_Table$Cell == i]
+}
+```
+
+```{r enrichR to cluster}
+
+mDIR <- "gmt/"
+gmt_files <- paste0(mDIR, list.files(mDIR, pattern = ".gmt"))
+gmt_files <- gmt_files[c(3:5, 8,11,12)]
+
+
+ENRICH <- list()
+for (i in gmt_files) {
+  print(i)
+  enrichr_gmt <- read.gmt(i)
+
+  try(ENRICH[[i]] <- compareCluster(Genes_List, fun="enricher", 
+                                    TERM2GENE=enrichr_gmt, pvalueCutoff = 0.01,
+                                    qvalueCutoff = 0.99)
+    , silent = TRUE)
+}
+
+#for (i in names(ENRICH)) {
+#  file_name <- gsub(".*/(\\w+)\\.gmt", "\\1", i)
+#    write.csv(ENRICH[[i]]@compareClusterResult, 
+#              file=paste0("Enrich_Result/Rummagene",s,"_",file_name,".csv"))
+#}
+
+d <- list()
+c <- list()
+for (i in names(ENRICH)) {
+    file_name <- gsub(".*/(\\w+)\\.gmt", "\\1", i)
+#    write.csv(ENRICH[[i]]@compareClusterResult, 
+#              file=paste0("Enrich_Result/Rummagene3_",file_name,".csv"))
+    c[[i]] <- cnetplot(pairwise_termsim(ENRICH[[i]]), showCategory = 99, 
+                  color.params = list(pie="Count", legend_n=4), 
+                  cex.params = list(edge = TRUE), 
+                  node_label = "category", layout.params = list(layout="kk")) + 
+            ggtitle(paste0(file_name, " for each cell type")) + 
+            theme(plot.title = element_text(face = "bold", size = 18))
+    d[[i]] <- dotplot(ENRICH[[i]], color = "pvalue", showCategory = 99) + 
+            ggtitle(paste0(file_name, " for each cell type") ) + 
+            theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+            theme(plot.title = element_text(face = "bold", size = 18))
+    ggsave(plot=d[[i]], filename=paste0("Graph/family_cnet_", file_name, ".svg"), 
+           width=6, h=6)
+    ggsave(plot=c[[i]], filename=paste0("Graph/family_dot_", file_name, ".svg"), 
+           width=6, h=6)
+}
+
+ENRICH$`gmt/GO_Cellular_Component_2023.gmt`@compareClusterResult$Description <- sub("(.*) \\(GO:\\d+\\)", "\\1", ENRICH$`gmt/GO_Cellular_Component_2023.gmt`@compareClusterResult$Description)
+
+
+
+```
+
+```{r List_GOBP}
+mDIR <- "gmt/"
+gmt_files <- paste0(mDIR, list.files(mDIR, pattern = ".gmt"))
+enrichr_gmt <- read.gmt(gmt_files[1])
+
+GOBPs <- compareCluster(Genes_List, fun="enricher", TERM2GENE=enrichr_gmt,
+                        pvalueCutoff = 0.99, qvalueCutoff = 0.99)
+
+GOBPs@compareClusterResult$Description <- sub("(.*) \\(GO:\\d+\\)", "\\1", GOBPs@compareClusterResult$Description)
+GOBPs@compareClusterResult$ID <- sub(".*\\((GO:\\d+)\\)", "\\1", GOBPs@compareClusterResult$ID)
+GOBPs@compareClusterResult <- GOBPs@compareClusterResult[GOBPs@compareClusterResult$pvalue < 0.01,]
+
+write.csv(GOBPs@compareClusterResult, "Enrich_Result/Family_GOBP.csv")
+
+d_B <- dotplot(GOBPs, showCategory=6, color = "pvalue") + 
+        ggtitle("GOBP") + 
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+        theme(plot.title = element_text(face = "bold", size = 18))
+
+ggsave(plot=d_B, filename=paste0("Graph/Go_BP_bar.svg"), 
+           width=6, h=6)
+```
+
+```{r List_GOCC}
+
+mDIR <- "gmt/"
+gmt_files <- paste0(mDIR, list.files(mDIR, pattern = ".gmt"))
+enrichr_gmt <- read.gmt(gmt_files[2])
+
+GOCCs <- compareCluster(Genes_List, fun="enricher", TERM2GENE=enrichr_gmt,
+                        pvalueCutoff = 0.99, qvalueCutoff = 0.99)
+
+GOCCs@compareClusterResult$Description <- sub("(.*) \\(GO:\\d+\\)", "\\1", GOCCs@compareClusterResult$Description)
+GOCCs@compareClusterResult$ID <- sub(".*\\((GO:\\d+)\\)", "\\1", GOCCs@compareClusterResult$ID)
+GOCCs@compareClusterResult <- GOCCs@compareClusterResult[GOCCs@compareClusterResult$pvalue < 0.01,]
+
+write.csv(GOCCs@compareClusterResult, "Enrich_Result/Family_GOCC.csv")
+
+d_C <- dotplot(GOCCs, showCategory=10, color = "pvalue") + 
+  ggtitle("GOCC") + 
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  theme(plot.title = element_text(face = "bold", size = 18))
+
+ggsave(plot=d_C, filename=paste0("Graph/Go_CC_bar.svg"), 
+           width=6, h=6)
+```
+
+```{r List_GOMF}
+
+mDIR <- "gmt/"
+gmt_files <- paste0(mDIR, list.files(mDIR, pattern = ".gmt"))
+enrichr_gmt <- read.gmt(gmt_files[3])
+
+GOMFs <- compareCluster(Genes_List, fun="enricher", TERM2GENE=enrichr_gmt,
+                        pvalueCutoff = 0.99, qvalueCutoff = 0.99)
+
+GOMFs@compareClusterResult$Description <- sub("(.*) \\(GO:\\d+\\)", "\\1", GOMFs@compareClusterResult$Description)
+GOMFs@compareClusterResult$ID <- sub(".*\\((GO:\\d+)\\)", "\\1", GOMFs@compareClusterResult$ID)
+GOMFs@compareClusterResult <- GOMFs@compareClusterResult[GOMFs@compareClusterResult$pvalue < 0.01,]
+
+write.csv(GOMFs@compareClusterResult, "Enrich_Result/Family_GOMF.csv")
+
+d_M <- dotplot(GOMFs, showCategory=10, color = "pvalue") + 
+      ggtitle("GOMF") + 
+      theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+      theme(plot.title = element_text(face = "bold", size = 18))
+
+ggsave(plot=d_M, filename=paste0("Graph/Go_MF_bar.svg"), 
+           width=6, h=6)
+```
+
+```{r List_KEGG_Human}
+
+mDIR <- "gmt/"
+gmt_files <- paste0(mDIR, list.files(mDIR, pattern = ".gmt"))
+enrichr_gmt <- read.gmt(gmt_files[4])
+
+KEGGHs <- compareCluster(Genes_List, fun="enricher", TERM2GENE=enrichr_gmt,
+                        pvalueCutoff = 0.99, qvalueCutoff = 0.99)
+
+KEGGHs@compareClusterResult <- KEGGHs@compareClusterResult[KEGGHs@compareClusterResult$pvalue < 0.01,]
+
+write.csv(KEGGHs@compareClusterResult, "Enrich_Result/Family_KEGGH.csv")
+
+d_K <- dotplot(KEGGHs, color = "pvalue") + 
+        ggtitle("KEGG") + 
+        theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+        theme(plot.title = element_text(face = "bold", size = 18))
+
+ggsave(plot=d_K, filename=paste0("Graph/Go_KEGG_bar.svg"), 
+           width=6, h=6)
+```
+
+```{r plot}
+
+d_s <- grid.arrange(d_B, d_C, d_M, d_K, nrow=1)
+ggsave(plot=d_s, filename="Graph/Family_dots.pdf", width=24, h=6)
+
+```
+
+```{r}
+
+cnetplot(GOBPs, showCategory = 20, categorySize="pvalue",
+         color.params = list(edge=TRUE), node_label = "none",
+         layout = "kk")  + 
+  ggtitle("Net Plot of GOBP in Cell") + 
+  theme(plot.title = element_text(face = "bold", size = 18))
+
+
+```
+
