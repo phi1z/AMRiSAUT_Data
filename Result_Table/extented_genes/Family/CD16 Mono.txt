@@ -1,0 +1,5 @@
+Family ID	Family name	HGNC ID (gene)	Approved symbol	Approved name
+729	L ribosomal proteins	HGNC:10349	RPL38	ribosomal protein L38
+729	L ribosomal proteins	HGNC:10305	RPL14	ribosomal protein L14
+1054	Ribosomal proteins	HGNC:10349	RPL38	ribosomal protein L38
+1054	Ribosomal proteins	HGNC:10305	RPL14	ribosomal protein L14

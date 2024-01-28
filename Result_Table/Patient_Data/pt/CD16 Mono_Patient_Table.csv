@@ -1,0 +1,16 @@
+"","Subject_ID","Sex","Age","Condition","idx"
+"38","BMI0093-M03_2","F","Middle","Control",1
+"39","BMI0094-M03_2","M","Young","Control",2
+"40","BMI0095-M03_2","M","Middle","Control",3
+"41","BMI0099-M03_2","F","Middle","Control",4
+"42","BMI0101-M03_2","M","Young","Control",5
+"12","DU19-01S0003542","M","Middle","MRSA",7
+"13","DU19-01S0003549","F","Aged","MRSA",8
+"14","DU19-01S0003978","F","Young","MRSA",9
+"15","DU19-01S0003987","F","Middle","MRSA",10
+"21","DU19-01S0004015","M","Aged","MRSA",11
+"1","DU19-01S0003453","F","Young","MSSA",12
+"2","DU19-01S0003462","F","Young","MSSA",13
+"4","DU19-01S0003464","F","Middle","MSSA",14
+"3","DU19-01S0003466","M","Young","MSSA",15
+"5","DU19-01S0003482","M","Middle","MSSA",16

@@ -1,0 +1,4 @@
+Family ID	Family name	HGNC ID (gene)	Approved symbol	Approved name
+646	Mitochondrial ribosomal proteins	HGNC:14502	MRPS10	mitochondrial ribosomal protein S10
+1054	Ribosomal proteins	HGNC:14502	MRPS10	mitochondrial ribosomal protein S10
+1996	Small subunit mitochondrial ribosomal proteins	HGNC:14502	MRPS10	mitochondrial ribosomal protein S10

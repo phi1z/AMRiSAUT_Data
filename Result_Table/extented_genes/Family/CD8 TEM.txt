@@ -1,0 +1,32 @@
+Family ID	Family name	HGNC ID (gene)	Approved symbol	Approved name
+646	Mitochondrial ribosomal proteins	HGNC:14056	MRPL2	mitochondrial ribosomal protein L2
+646	Mitochondrial ribosomal proteins	HGNC:14276	MRPL4	mitochondrial ribosomal protein L4
+646	Mitochondrial ribosomal proteins	HGNC:14502	MRPS10	mitochondrial ribosomal protein S10
+646	Mitochondrial ribosomal proteins	HGNC:14488	MRPL34	mitochondrial ribosomal protein L34
+646	Mitochondrial ribosomal proteins	HGNC:14491	MRPL40	mitochondrial ribosomal protein L40
+646	Mitochondrial ribosomal proteins	HGNC:14055	MRPL10	mitochondrial ribosomal protein L10
+646	Mitochondrial ribosomal proteins	HGNC:16653	MRPL48	mitochondrial ribosomal protein L48
+646	Mitochondrial ribosomal proteins	HGNC:16686	MRPL55	mitochondrial ribosomal protein L55
+646	Mitochondrial ribosomal proteins	HGNC:10378	MRPL12	mitochondrial ribosomal protein L12
+729	L ribosomal proteins	HGNC:10327	RPL26	ribosomal protein L26
+1054	Ribosomal proteins	HGNC:14056	MRPL2	mitochondrial ribosomal protein L2
+1054	Ribosomal proteins	HGNC:14276	MRPL4	mitochondrial ribosomal protein L4
+1054	Ribosomal proteins	HGNC:14502	MRPS10	mitochondrial ribosomal protein S10
+1054	Ribosomal proteins	HGNC:14488	MRPL34	mitochondrial ribosomal protein L34
+1054	Ribosomal proteins	HGNC:14491	MRPL40	mitochondrial ribosomal protein L40
+1054	Ribosomal proteins	HGNC:14055	MRPL10	mitochondrial ribosomal protein L10
+1054	Ribosomal proteins	HGNC:16653	MRPL48	mitochondrial ribosomal protein L48
+1054	Ribosomal proteins	HGNC:16686	MRPL55	mitochondrial ribosomal protein L55
+1054	Ribosomal proteins	HGNC:10327	RPL26	ribosomal protein L26
+1054	Ribosomal proteins	HGNC:10378	MRPL12	mitochondrial ribosomal protein L12
+1835	Small nucleolar RNA protein coding host genes	HGNC:3214	EEF2	eukaryotic translation elongation factor 2
+1838	Small nucleolar RNA host genes	HGNC:3214	EEF2	eukaryotic translation elongation factor 2
+1994	Large subunit mitochondrial ribosomal proteins	HGNC:14056	MRPL2	mitochondrial ribosomal protein L2
+1994	Large subunit mitochondrial ribosomal proteins	HGNC:14276	MRPL4	mitochondrial ribosomal protein L4
+1994	Large subunit mitochondrial ribosomal proteins	HGNC:14488	MRPL34	mitochondrial ribosomal protein L34
+1994	Large subunit mitochondrial ribosomal proteins	HGNC:14491	MRPL40	mitochondrial ribosomal protein L40
+1994	Large subunit mitochondrial ribosomal proteins	HGNC:14055	MRPL10	mitochondrial ribosomal protein L10
+1994	Large subunit mitochondrial ribosomal proteins	HGNC:16653	MRPL48	mitochondrial ribosomal protein L48
+1994	Large subunit mitochondrial ribosomal proteins	HGNC:16686	MRPL55	mitochondrial ribosomal protein L55
+1994	Large subunit mitochondrial ribosomal proteins	HGNC:10378	MRPL12	mitochondrial ribosomal protein L12
+1996	Small subunit mitochondrial ribosomal proteins	HGNC:14502	MRPS10	mitochondrial ribosomal protein S10

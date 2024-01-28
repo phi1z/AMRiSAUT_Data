@@ -1,0 +1,11 @@
+Family ID	Family name	HGNC ID (gene)	Approved symbol	Approved name
+728	S ribosomal proteins	HGNC:10401	RPS18	ribosomal protein S18
+728	S ribosomal proteins	HGNC:10416	RPS27	ribosomal protein S27
+728	S ribosomal proteins	HGNC:10442	RPS9	ribosomal protein S9
+729	L ribosomal proteins	HGNC:10316	RPL23	ribosomal protein L23
+1054	Ribosomal proteins	HGNC:10401	RPS18	ribosomal protein S18
+1054	Ribosomal proteins	HGNC:10416	RPS27	ribosomal protein S27
+1054	Ribosomal proteins	HGNC:10442	RPS9	ribosomal protein S9
+1054	Ribosomal proteins	HGNC:10316	RPL23	ribosomal protein L23
+1835	Small nucleolar RNA protein coding host genes	HGNC:10316	RPL23	ribosomal protein L23
+1838	Small nucleolar RNA host genes	HGNC:10316	RPL23	ribosomal protein L23

@@ -1,0 +1,55 @@
+Family ID	Family name	HGNC ID (gene)	Approved symbol	Approved name
+362	WD repeat domain containing	HGNC:13607	FBXW11	F-box and WD repeat domain containing 11
+557	F-boxes	HGNC:13607	FBXW11	F-box and WD repeat domain containing 11
+559	F-box and WD repeat domain containing	HGNC:13607	FBXW11	F-box and WD repeat domain containing 11
+565	General transcription factors	HGNC:4648	GTF2B	general transcription factor IIB
+595	INO80 complex 	HGNC:14671	ACTR5	actin related protein 5
+646	Mitochondrial ribosomal proteins	HGNC:16633	MRPS18C	mitochondrial ribosomal protein S18C
+646	Mitochondrial ribosomal proteins	HGNC:14275	MRPL1	mitochondrial ribosomal protein L1
+646	Mitochondrial ribosomal proteins	HGNC:14476	MRPL16	mitochondrial ribosomal protein L16
+646	Mitochondrial ribosomal proteins	HGNC:14027	MRPL39	mitochondrial ribosomal protein L39
+646	Mitochondrial ribosomal proteins	HGNC:14492	MRPL41	mitochondrial ribosomal protein L41
+646	Mitochondrial ribosomal proteins	HGNC:14049	MRPS14	mitochondrial ribosomal protein S14
+646	Mitochondrial ribosomal proteins	HGNC:14046	MRPS21	mitochondrial ribosomal protein S21
+646	Mitochondrial ribosomal proteins	HGNC:16635	MRPS35	mitochondrial ribosomal protein S35
+690	Proteasome	HGNC:9545	PSMB8	proteasome 20S subunit beta 8
+690	Proteasome	HGNC:9533	PSMA4	proteasome 20S subunit alpha 4
+690	Proteasome	HGNC:9544	PSMB7	proteasome 20S subunit beta 7
+728	S ribosomal proteins	HGNC:18476	RPS27L	ribosomal protein S27 like
+729	L ribosomal proteins	HGNC:10327	RPL26	ribosomal protein L26
+729	L ribosomal proteins	HGNC:10299	RPL10A	ribosomal protein L10a
+729	L ribosomal proteins	HGNC:10311	RPL18A	ribosomal protein L18a
+729	L ribosomal proteins	HGNC:21370	RPL7L1	ribosomal protein L7 like 1
+1054	Ribosomal proteins	HGNC:16633	MRPS18C	mitochondrial ribosomal protein S18C
+1054	Ribosomal proteins	HGNC:14275	MRPL1	mitochondrial ribosomal protein L1
+1054	Ribosomal proteins	HGNC:14476	MRPL16	mitochondrial ribosomal protein L16
+1054	Ribosomal proteins	HGNC:14027	MRPL39	mitochondrial ribosomal protein L39
+1054	Ribosomal proteins	HGNC:14492	MRPL41	mitochondrial ribosomal protein L41
+1054	Ribosomal proteins	HGNC:14049	MRPS14	mitochondrial ribosomal protein S14
+1054	Ribosomal proteins	HGNC:14046	MRPS21	mitochondrial ribosomal protein S21
+1054	Ribosomal proteins	HGNC:18476	RPS27L	ribosomal protein S27 like
+1054	Ribosomal proteins	HGNC:16635	MRPS35	mitochondrial ribosomal protein S35
+1054	Ribosomal proteins	HGNC:10327	RPL26	ribosomal protein L26
+1054	Ribosomal proteins	HGNC:10299	RPL10A	ribosomal protein L10a
+1054	Ribosomal proteins	HGNC:10311	RPL18A	ribosomal protein L18a
+1054	Ribosomal proteins	HGNC:21370	RPL7L1	ribosomal protein L7 like 1
+1061	Mediator complex	HGNC:11473	MED21	mediator complex subunit 21
+1061	Mediator complex	HGNC:25487	MED9	mediator complex subunit 9
+1171	SCF complex	HGNC:13607	FBXW11	F-box and WD repeat domain containing 11
+1436	Actin related proteins	HGNC:14671	ACTR5	actin related protein 5
+1484	SSU processome	HGNC:14497	IMP3	IMP U3 small nucleolar ribonucleoprotein 3
+1486	MPP10 subcomplex	HGNC:14497	IMP3	IMP U3 small nucleolar ribonucleoprotein 3
+1690	MicroRNA host genes	HGNC:10299	RPL10A	ribosomal protein L10a
+1691	MicroRNA protein coding host genes	HGNC:10299	RPL10A	ribosomal protein L10a
+1729	Ribosomal biogenesis factors	HGNC:14497	IMP3	IMP U3 small nucleolar ribonucleoprotein 3
+1835	Small nucleolar RNA protein coding host genes	HGNC:10311	RPL18A	ribosomal protein L18a
+1838	Small nucleolar RNA host genes	HGNC:10311	RPL18A	ribosomal protein L18a
+1876	Signal recognition particle	HGNC:11301	SRP54	signal recognition particle 54
+1994	Large subunit mitochondrial ribosomal proteins	HGNC:14275	MRPL1	mitochondrial ribosomal protein L1
+1994	Large subunit mitochondrial ribosomal proteins	HGNC:14476	MRPL16	mitochondrial ribosomal protein L16
+1994	Large subunit mitochondrial ribosomal proteins	HGNC:14027	MRPL39	mitochondrial ribosomal protein L39
+1994	Large subunit mitochondrial ribosomal proteins	HGNC:14492	MRPL41	mitochondrial ribosomal protein L41
+1996	Small subunit mitochondrial ribosomal proteins	HGNC:16633	MRPS18C	mitochondrial ribosomal protein S18C
+1996	Small subunit mitochondrial ribosomal proteins	HGNC:14049	MRPS14	mitochondrial ribosomal protein S14
+1996	Small subunit mitochondrial ribosomal proteins	HGNC:14046	MRPS21	mitochondrial ribosomal protein S21
+1996	Small subunit mitochondrial ribosomal proteins	HGNC:16635	MRPS35	mitochondrial ribosomal protein S35
