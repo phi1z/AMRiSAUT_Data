@@ -1,0 +1,5 @@
+"","Cluster","ID","Description","GeneRatio","BgRatio","pvalue","p.adjust","qvalue","geneID","Count"
+"1","CD8 TEM","Interferon-gamma signaling pathway","Interferon-gamma signaling pathway","9/152","97/9813",1.81271937247521e-05,0.0118370575022631,0.0109717225176131,"IRF9/IFNGR1/CAMK2G/GBP5/IRF2/PTPN2/IRF4/STAT1/SMAD7",9
+"2","CD8 TEM","Interferon signaling","Interferon signaling","11/152","168/9813",5.75032385971145e-05,0.0184982741086958,0.0171459782582414,"IRF9/IFNGR1/EGR1/CAMK2G/GBP5/IRF2/PTPN2/IRF4/KPNA3/IFIT2/STAT1",11
+"3","CD8 TEM","Interferon-beta enhancer pathway","Interferon-beta enhancer pathway","5/152","30/9813",8.70225277407738e-05,0.0184982741086958,0.0171459782582414,"JUN/POLR2A/SMARCE1/IRF2/IRF4",5
+"4","CD8 TEM","Type II interferon signaling (interferon-gamma)","Type II interferon signaling (interferon-gamma)","6/152","50/9813",0.000113312551967509,0.0184982741086958,0.0171459782582414,"IRF9/IFNGR1/IRF2/IRF4/IFIT2/STAT1",6
