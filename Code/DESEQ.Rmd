@@ -1,0 +1,603 @@
+```{r}
+library(DESeq2)
+library(ggplot2)
+library(EnhancedVolcano)
+
+```
+
+```{r}
+Tensor2DESeq <- function(tensor){
+  Patient <- tensor@sample
+  Patient <- as.vector(Patient)
+  n_p <- length(Patient)/3
+  GeneNames <- tensor@feature
+  GeneNames[is.na(GeneNames)] <- "NA"
+  GeneNames <- as.factor(GeneNames)
+  Condition <- rep("Control", length(Patient)/3)
+  Condition <- c(Condition, rep("MRSA", length(Patient)/3))
+  Condition <- c(Condition, rep("MSSA", length(Patient)/3))
+  Condition <- as.factor(Condition)
+  Tensor <- tensor@value
+  Tensor <- cbind(Tensor[,,1], Tensor[,,2], Tensor[,,3])
+  row.names(Tensor) <- GeneNames
+  Tensor <- Tensor[apply(Tensor,1,sum) > 0,]
+  Tensor <- Tensor * 1000 + 1
+  geneData <- data.frame(row.names = row.names(Tensor), round(Tensor))
+  colnames(geneData) <- Patient
+  colData <- data.frame(row.names = Patient, Condition = Condition)
+  dds <- DESeqDataSetFromMatrix(countData = geneData, colData = colData, design = ~ Condition)
+  
+  resdds <- DESeq(dds)
+  return(resdds)
+}
+
+Celltype <- c("CD14 mono", "CD16 mono", "CD4 Naive", "CD4 TCM", "CD8 TEM","NK")
+this_path <- paste0("out_put_Tensor/", Celltype[1], "_Gene_tensor.rds")
+RawTensor <- readRDS(this_path)
+Tcoldds <- Tensor2DESeq(RawTensor)
+```
+
+
+```{r}
+TableGene <- function(res, p0=0.01, lfc0=0.5){
+  res <- res[order(res$padj),]
+  res <- res[res$padj < p0,]
+  res <- res[abs(res$log2FoldChange) > lfc0,]
+  signSer <- rep("-", nrow(res))
+  df <- data.frame(Gene=row.names(res), log2FC = res$log2FoldChange, P.value = res$pvalue,
+                   adj.P.value = res$padj, sgnlFC = signSer)
+  df$sgnlFC[res$log2FoldChange > 0] <- "+"
+  return(df)
+}
+
+resultDESeq2 <- results(Tcoldds, contrast=c("Condition", "MSSA", "MRSA"))
+resultDESeq2 <- resultDESeq2[!is.na(resultDESeq2$padj),]
+ExtractedGene <- TableGene(resultDESeq2, p0=0.01, lfc0=0.5)
+out_path_dss <- paste0("DESeq/dds/DESeq2_", Celltype[1], ".rds")
+saveRDS(Tcoldds, file = out_path_dss)
+out_path <- paste0("DESeq/ExtractedGene_", Celltype[1], ".csv")
+write.csv(ExtractedGene, file = out_path)
+print(ExtractedGene)
+```
+
+```{r}
+
+Vol <- EnhancedVolcano(resultDESeq2,
+    lab = rownames(resultDESeq2),
+    x = 'log2FoldChange',
+    y = 'pvalue',
+    title = 'Volcano plot',
+    pCutoff = 0.01,
+    FCcutoff = 0.5,
+    pointSize = 1.0)
+#save figure
+out_path_vol <- paste0("DESeq/graph/volcano_", Celltype[1], ".png")
+ggsave(out_path_vol, Vol, width = 10, height = 10)
+out_path_ma <- paste0("DESeq/graph/MAplot_", Celltype[1], ".png")
+pma <- plotMA(resultDESeq2, ylim=c(-2,2))
+ggsave(out_path_ma, pma, width = 10, height = 10)
+```
+
+```{r}
+th_lfc <- 0.5
+th_padj <- 0.01
+
+for (cell in Celltype[2]){
+  print(paste0("Processing: ", cell, "..."))
+  this_path <- paste0("out_put_Tensor/", cell, "_Gene_tensor.rds")
+  RawTensor <- readRDS(this_path)
+  Tcoldds <- Tensor2DESeq(RawTensor)
+  resultDESeq2 <- results(Tcoldds, contrast=c("Condition", "MSSA", "MRSA"))
+  resultDESeq2 <- resultDESeq2[!is.na(resultDESeq2$padj),]
+  ExtractedGene <- TableGene(resultDESeq2, p0=th_padj, lfc0=th_lfc)
+  out_path_dss <- paste0("DESeq/dds/DESeq2_", cell, ".rds")
+  saveRDS(Tcoldds, file = out_path_dss)
+  out_path <- paste0("DESeq/ExtractedGene_", cell, ".csv")
+  write.csv(ExtractedGene, file = out_path)
+  Vol <- EnhancedVolcano(resultDESeq2,
+    lab = rownames(resultDESeq2),
+    xlab = 'log2FoldChange',
+    ylab = 'adjusted P-value',
+    x = 'log2FoldChange',
+    y = 'padj',
+    title = paste0("Volcano plot of MSSA vs. MRSA for ", cell),
+    pCutoff = th_padj,
+    FCcutoff = th_lfc,
+    pointSize = 1.0)
+  out_path_vol <- paste0("DESeq/graph/volcano_", cell, ".png")
+  ggsave(out_path_vol, Vol, width = 10, height = 10)
+  ggsave(paste0("DESeq/graph/volcano_", cell, ".pdf"), Vol, width = 10, height = 10)
+  out_path_ma <- paste0("DESeq/graph/MAplot_", cell, ".png")
+  pma <- plotMA(resultDESeq2, ylim=c(-5,5), main = paste0("MA plot of MSSA vs. MRSA for ", cell))
+  ggsave(out_path_ma, plot = pma, width = 10, height = 8)
+  ggsave(paste0("DESeq/graph/MAplot_", cell, ".pdf"), plot = pma, width = 10, height = 10)
+}
+```
+
+
+```{r}
+readDEGDESeq <- function(cell){
+    this_path <- paste0("DESeq/ExtractedGene_", cell, ".csv")
+    this_table <- read.csv(this_path)
+    this_genes <- this_table$Gene
+    return(this_genes)
+}
+
+# Celltype[1:2] <- c("CD14 mono", "CD16 mono")
+DEGlist <- list()
+for (cell in Celltype){
+  DEGlist[[cell]] <- readDEGDESeq(cell)
+}
+
+```
+
+```{r}
+library(ggplot2)
+library(gridExtra)
+library(tidyr)
+library(dplyr)
+
+Gene_ct_list <- DEGlist
+vct_n <- length(Celltype)
+Dip_mat1 <- array(dim = c(vct_n ,vct_n ) )
+Dip_mat2 <- array(dim = c(vct_n ,vct_n ) )
+
+for (i in 1:vct_n ) {
+  for (j in i:vct_n) {
+    Dip_mat1[i,j] <- length(intersect(Gene_ct_list[[i]], Gene_ct_list[[j]]) )
+  }
+}
+for (i in 1:vct_n) {
+  for (j in 1:vct_n) {
+    Dip_mat2[j,i] <- length(intersect(Gene_ct_list[[i]], Gene_ct_list[[j]]) )/length(Gene_ct_list[[i]])
+    Dip_mat2[j,i] <- 100*Dip_mat2[j,i]
+  }
+}
+
+
+df1 <- as.data.frame(Dip_mat1)
+colnames(df1) <- Celltype
+rownames(df1) <- Celltype
+df2 <- as.data.frame(Dip_mat2)
+colnames(df2) <- Celltype
+rownames(df2) <- Celltype
+
+df1_long <- df1 %>%
+  mutate(Row = Celltype) %>%
+  pivot_longer(-Row, names_to = "Column", values_to = "Value")
+df2_long <- df2 %>%
+  mutate(Row = Celltype) %>%
+  pivot_longer(-Row, names_to = "Column", values_to = "Value")
+
+p1 <- ggplot(df1_long, aes(y = Column, x = Row, fill = Value)) +
+  geom_tile() +
+  scale_fill_gradient(low = "#30cfd0", high = "#330867",
+                      na.value = "white", trans = "log",
+                      breaks = c(10,25,50,100,250,500,1000,2500) ) +
+  labs(title = "Counts of gene similarity between cell-types") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 18),
+        axis.text.y = element_text(size = 18),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        plot.title = element_text(hjust = 0.5, size = 25, face = "bold")) +
+  geom_text(data = df1_long %>% filter(!is.na(Value)),
+              aes(label = sprintf("%.0f", Value)),
+              color = "white",fontface = "bold", size = 8.5) +
+  guides(fill = guide_colorbar(direction = "vertical", barheight = 30,
+                               barwidth = 3, label.theme = element_text(size = 16),
+                               title.theme = element_text(size = 16))) +
+  scale_x_discrete(position = "top")
+
+ggsave("DESeq/graph/heatmap_gene_count.png", p1, width = 10, height = 10)
+#save px 900 x 800
+
+p2 <- ggplot(df2_long, aes(y = Column, x = Row, fill = Value)) +
+  geom_tile() +
+  scale_fill_gradient(low = "#30cfd0", high = "#330867",
+                      na.value = "white", trans = "log",
+                      breaks = c(1,5,10,25,50,100) ) +
+  labs(title = "Proportions of gene similarity between cell-types [%]") +
+  theme_minimal() +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1, size = 18),
+        axis.text.y = element_text(size = 18),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        plot.title = element_text(hjust = 0.5, size = 23, face = "bold")) +
+  geom_text(data = df2_long %>% filter(!is.na(Value)),
+            aes(label = sprintf("%.0f", Value)),
+            color = "white",fontface = "bold", size = 8.5) +
+  guides(fill = guide_colorbar(direction = "vertical", barheight = 30,
+                               barwidth = 3, label.theme = element_text(size = 16),
+                               title.theme = element_text(size = 16))) +
+  scale_x_discrete(position = "top")
+ggsave("DESeq/graph/heatmap_gene_proportion.png", p2, width = 10, height = 10)
+
+p1p2 <- grid.arrange(p1, p2, ncol=2)
+ggsave("DESeq/graph/heatmap_gene.png", p1p2, width = 20, height = 10)
+ggsave("DESeq/graph/heatmap_gene.pdf", p1p2, width = 20, height = 10)
+#save px 1800 x 800
+
+```
+
+```{r}
+Celltype_TD <- c("CD14 Mono", "CD16 Mono", "CD4 Naive", "CD4 TCM", "CD8 TEM","NK")
+
+TDGenelist <- list()
+TDGene_table <- read.csv("extented_genes/ALL_DEG.csv")
+for (cell in Celltype_TD){
+  this_genes <- TDGene_table[TDGene_table$Cell == cell,]$Feature
+  TDGenelist[[cell]] <- this_genes
+}
+names(TDGenelist) <- Celltype
+
+Venn <- DataFrame(matrix(ncol = 5, nrow = length(Celltype)))
+colnames(Venn) <- c("TDbasedUFE", "DESeq2", "TDbasedUFE_only", "DESeq2_only", "Both")
+rownames(Venn) <- Celltype
+
+for (cell in Celltype){
+  this_DESeq2_genes <- DEGlist[[cell]]
+  this_TD_genes <- TDGenelist[[cell]]
+  this_both_genes <- intersect(this_DESeq2_genes, this_TD_genes)
+  Venn[cell, "TDbasedUFE"] <- length(this_TD_genes)
+  Venn[cell, "DESeq2"] <- length(this_DESeq2_genes)
+  Venn[cell, "TDbasedUFE_only"] <- length(this_TD_genes) - length(this_both_genes)
+  Venn[cell, "DESeq2_only"] <- length(this_DESeq2_genes) - length(this_both_genes)
+  Venn[cell, "Both"] <- length(this_both_genes)
+}
+write.csv(Venn, file = "DESeq/venn_table.csv")
+
+VennGeneList <- list()
+for (cell in Celltype){
+  this_DESeq2_genes <- DEGlist[[cell]]
+  this_TD_genes <- TDGenelist[[cell]]
+  this_both_genes <- intersect(this_DESeq2_genes, this_TD_genes)
+  VennGeneList[[cell]] <- list(TDbasedUFE = this_TD_genes,
+                               DESeq2 = this_DESeq2_genes,
+                               TDbasedUFE_only = setdiff(this_TD_genes, this_both_genes),
+                               DESeq2_only = setdiff(this_DESeq2_genes, this_both_genes),
+                               Both = this_both_genes)
+}
+saveRDS(VennGeneList, file = "DESeq/VennGeneList.rds")
+```
+
+```{r}
+library(clusterProfiler)
+library(enrichplot)
+
+for (type in gene_type){
+  dir.create(paste0("DESeq/Enrichment/", type), showWarnings = FALSE)
+}
+
+gene_type <- c("TDbasedUFE", "DESeq2", "TDbasedUFE_only", "DESeq2_only", "Both")
+gmt_path <- c("Reactome_2022", "BioPlanet_2019")
+              #"MSigDB_Computational", "PFOCR_Pathways_2023", "MSigDB_Oncogenic_Signatures",
+              #"OMIM_Expanded", "DrugMatrix")
+gmt_folder <- "DESeq/gmt"
+gmt_path <- paste0(gmt_folder, "/", gmt_path, ".gmt")
+
+VennGeneList <- readRDS("DESeq/VennGeneList.rds")
+names(VennGeneList) <- Celltype
+VennGeneList2 <-list()
+for (type in gene_type){
+  VennGeneList2[[type]] <- list()
+  for (cell in Celltype){
+    print(paste0("Processing: ", cell, " for ", type, " ", length(VennGeneList[[cell]][[type]]) ," genes"))
+    VennGeneList2[[type]][[cell]] <- VennGeneList[[cell]][[type]]
+  }
+}
+
+Enrich <- list()
+for (type in gene_type){
+  Enrich[[type]] <- list()
+  for (gmt in gmt_path){
+    print(paste0("Processing: ", gmt, " for ", type, " genes"))
+    enrichr_gmt <- read.gmt(gmt)
+    ENRICH <- compareCluster(VennGeneList2[[type]], fun="enricher", TERM2GENE=enrichr_gmt, 
+                             pvalueCutoff = 0.05, qvalueCutoff = 0.99)
+    Enrich[[type]][[ gsub(".gmt", "", gsub("DESeq/gmt/", "", gmt)) ]] <- ENRICH
+  }
+}
+for (enrich in names(Enrich$DESeq2)){
+  for (type in gene_type){
+    if (is.null(Enrich[[type]][[enrich]])){
+      next
+    }
+    out_path <- paste0("DESeq/Enrichment/", type, "/", enrich, ".csv")
+    write.csv(Enrich[[type]][[enrich]], file = out_path)
+  }
+}
+
+for (enrich in names(Enrich$DESeq2)){
+  for (type in gene_type){
+    print(paste0("Processing: ", enrich, " for ", type, " genes"))
+    out_path <- paste0("DESeq/Enrichment/", type, "/", enrich, ".pdf")
+    if (is.null(Enrich[[type]][[enrich]])){
+      next
+    }
+    Emap <- emapplot(pairwise_termsim(Enrich[[type]][[enrich]]),
+                     showCategory = 99, color = "pvalue", title = paste0(enrich, " for ", type, " genes"))
+    ggsave(out_path, Emap, width = 10, height = 10)
+  }
+}
+
+```
+
+```{r}
+library(ggplot2)
+library(gridExtra)
+
+gene_type <- c("TDbasedUFE", "DESeq2", "TDbasedUFE_only", "DESeq2_only", "Both")
+gmt_path <- c("Reactome_2022", "BioPlanet_2019")
+type <- gene_type[1]
+
+Emap_list <- list()
+Emap_list[[gmt_path[1]]] <- emapplot(pairwise_termsim(Enrich[[type]][[gmt_path[1]]]),
+    showCategory = 99, color = "pvalue", title = paste0(gmt_path[1], " for ", type, " genes"))
+
+Emap_list[[gmt_path[2]]] <- emapplot(pairwise_termsim(Enrich[[type]][[gmt_path[2]]]),
+    showCategory = 99, color = "pvalue", title = paste0(gmt_path[2], " for ", type, " genes"))
+
+all_pa <- grid.arrange(Emap_list[[gmt_path[1]]], Emap_list[[gmt_path[2]]], ncol = 2)
+# add sub indecies a. and b. to the plots
+ggsave("DESeq/graph/Enrichment_map.svg", all_pa, width = 20, height = 10)
+
+all_pa
+
+
+```
+
+
+
+```{r}
+# 配列を改行区切りでテキストファイルに保存
+for (gene in names(DEGlist)){
+  out_path <- paste0("DESeq/Extracted_Gene/", gene, ".txt")
+  # ""を含めずに配列の要素を改行区切りで保存
+  write.table(DEGlist[[gene]], file = out_path, quote = FALSE, row.names = FALSE, col.names = FALSE)
+}
+```
+
+```{r}
+library(readxl)
+library(dplyr)
+
+RG_raw <- read_xlsx("DEseq/DESeq2_rummagene.xlsx", sheet = "Rummagene")
+
+dep_table <- function(Table ,m=4){
+  Table$Id <- Table$Table
+  Table$Id <- paste(Table$Table, Table$Column, sep = " | ")
+  
+  dep_Table <- Table %>%
+    group_by(Id) %>%
+    mutate(duplicate_count = n()) %>%
+    filter(duplicate_count >= m) %>%
+    ungroup()
+  
+  return(dep_Table)
+} 
+
+val_RG_raw <- dep_table(RG_raw, m = 1)
+#val_RG_raw <- data.frame(val_RG_raw)
+val_RG_raw$Id <- gsub("\\|", "$", val_RG_raw$Id)
+val_RG_raw$Id <- gsub("\\.xlsx", "", val_RG_raw$Id)
+val_RG_raw$Id <- gsub("\\.xls", "", val_RG_raw$Id)
+
+find_dup <- function(Table, d=6){
+  
+  val_Table <- Table[Table$duplicate_count >= d,]
+  Table_uni <- val_Table[val_Table$Cell == unique(val_Table$Cell)[1],] 
+  n <- nrow(Table_uni)
+  out <- data.frame(Paper = Table_uni$Paper, Title = Table_uni$Title,
+                    Id = Table_uni$Id, dup = Table_uni$duplicate_count,
+                    L = numeric(n))
+  for(id in out$Id){
+    val <- val_Table[val_Table$Id == id,]
+    this_L <- mean(log(val$AdjPValue))
+    out$L[out$Id == id] <- -1 * this_L
+  }
+  out <- out[order(out$L, decreasing = TRUE),]
+  return(out)
+}
+
+dup_RG <- find_dup(val_RG_raw, d = 6)
+colnames(dup_RG)[3] <- "Table $ Column"
+
+write.csv(dup_RG, "DESeq/dup_Rummagene.csv")
+
+```
+
+```{r}
+
+libs <- gsub(".gmt", "", gsub("gmt/", "", gmt_path))
+Enrich_n <- data.frame( matrix(0, nrow = length(libs), ncol = 6) )
+colnames(Enrich_n) <- libs
+rownames(Enrich_n) <- Celltype
+
+for (type in colnames(Enrich_n)){
+  this_enrich <- Enrich$TDbasedUFE[[type]]
+  if ( !(is.null(this_enrich)) ){
+    for (cell in rownames(Enrich_n)){
+      this_cell_enrich <- this_enrich@compareClusterResult[this_enrich@compareClusterResult$Cluster == cell,  ]
+      Enrich_n[type, cell] <- length(this_cell_enrich$Gene)
+    }
+  }
+}
+
+#write.csv(Enrich_n, "DESeq/Enrichment_n_TDbasedUFE.csv")
+
+```
+
+```{r}
+library(rvest)
+library(enrichR)
+
+dir.create("DESeq/gmt", showWarnings = FALSE)
+# download all files from the URL
+
+# ダウンロード先のフォルダを指定
+download_folder <- "DESeq/gmt"
+
+# URLを指定
+url <- "https://maayanlab.cloud/Enrichr/#libraries"
+webpage <- read_html(url)
+
+lib_list <- enrichR::listEnrichrDbs()[3][,"libraryName"]
+lib_list <- sort(lib_list)
+links <- paste0("https://maayanlab.cloud/Enrichr/geneSetLibrary?mode=text&libraryName=", lib_list)
+
+for (link in links) {
+  download_url <- link
+  webpage <- read_html(link)
+  pre_text <- webpage %>%
+    html_node("p") %>% # <pre> 要素を取得
+    html_text()           # テキストとして抽出
+  
+  file_name <- substr(link, 70, nchar(link))
+  file_name <- paste0(download_folder,"/" ,file_name, ".gmt")
+  writeLines(pre_text, file_name)
+  print(paste0("Downloaded: ", file_name))
+#  download.file(download_url, file.path(download_folder, file_name))
+}
+
+```
+
+```{r}
+library("progress")
+library("clusterProfiler")
+
+nRange <- c(201,length(gmt_path))
+cRange <- paste0(nRange[1], "-", nRange[2])
+
+Enrich <- list()
+gene_type <- c("TDbasedUFE", "DESeq2")
+gmt_path <- list.files("DESeq/gmt", full.names = TRUE)
+gmt_path <- gmt_path[nRange[1]:nRange[2]]
+
+pb <- progress_bar$new(total = length(gmt_path) * 2,
+                          format = "[:bar] :percent 経過 :elapsed",
+                          clear = TRUE)
+for (type in gene_type){
+  Enrich[[type]] <- list()
+  for (gmt in gmt_path){
+    pb$tick()
+    print(paste0("Processing: ", gmt, " for ", type, " genes"))
+    enrichr_gmt <- read.gmt(gmt)
+    ENRICH <- compareCluster(VennGeneList2[[type]], fun="enricher", TERM2GENE=enrichr_gmt, 
+                             pvalueCutoff = 0.05, qvalueCutoff = 0.99)
+    Enrich[[type]][[ gsub(".gmt", "", gsub("DESeq/gmt/", "", gmt)) ]] <- ENRICH
+  }
+}
+
+libs <- gsub(".gmt", "", gsub("DESeq/gmt/", "", gmt_path))
+Enrich_n <- data.frame( matrix(0, nrow = length(libs), ncol = 10) )
+rownames(Enrich_n) <- libs
+colnames(Enrich_n) <- c(Celltype, "Total", "Mean", "SD", "CV")
+
+for (EType in gene_type){
+  for (type in rownames(Enrich_n)){
+    this_enrich <- Enrich[[EType]][[type]]
+    if ( !(is.null(this_enrich)) ){
+      for (cell in Celltype){
+        this_cell_enrich <- this_enrich@compareClusterResult[this_enrich@compareClusterResult$Cluster == cell,  ]
+        Enrich_n[type, cell] <- length(this_cell_enrich$Gene)
+      }
+      Enrich_n[type, 7] <- sum(Enrich_n[type, 1:6])
+      Enrich_n[type, 8] <- Enrich_n[type, 7] / length(Celltype)
+      Enrich_n[type, 9] <- sd(Enrich_n[type, 1:6])
+      Enrich_n[type, 10] <- Enrich_n[type, 9] / Enrich_n[type, 8]
+    }
+  }
+  write.csv(Enrich_n, paste0("DESeq/Enrich_n/Enrichment_n_", EType, "_",cRange,".csv"))
+}
+
+#write.csv(Enrich_n, "DESeq/Enrichment_n_TDbasedUFE.csv")
+
+
+
+```
+
+```{r}
+library("TDbasedUFE")
+library("rTensor")
+
+Celltype <- c("CD14 Mono", "CD16 Mono", "CD4 Naive", "CD4 TCM", "CD8 TEM","NK")
+this_cell <- Celltype[1]
+path_tensor <- paste0("out_put_Tensor/", this_cell, "_Gene_tensor.rds")
+RawTensor <- readRDS(path_tensor)
+dims <- dim(RawTensor@value)
+normTensor <- as.tensor(apply(RawTensor@value, c(seq_len(length(dims)))[-1], scale))
+normTensor <- normTensor@data
+
+TDGene_table <- read.csv("extented_genes/ALL_DEG.csv")
+selected_gene <- TDGene_table[TDGene_table$Cell == this_cell,]$Feature
+selected_idx <- which(RawTensor@feature %in% selected_gene)
+
+#selected_tensor <- RawTensor@value[selected_idx,,]
+selected_tensor <- normTensor[selected_idx,,]
+
+MRSA_tensor <- selected_tensor[,,2]
+colnames(MRSA_tensor) <- paste0("MRSA_",1:dim(MRSA_tensor)[2])
+row.names(MRSA_tensor) <- RawTensor@feature[selected_idx]
+MSSA_tensor <- selected_tensor[,,3]
+colnames(MSSA_tensor) <- paste0("MSSA_",1:dim(MSSA_tensor)[2])
+row.names(MSSA_tensor) <- RawTensor@feature[selected_idx]
+All_tensor <- cbind(MRSA_tensor, MSSA_tensor)
+
+library(ggplot2)
+library(reshape2)
+library(RColorBrewer)
+library(tibble)
+library(amap)
+
+genehc <- function(tensor){
+  hc <- tensor %>%
+    amap::Dist(method = "correlation") %>%
+    hclust(method = "ward.D2")
+  
+  #gene_order <- hc$labels[hc$order]
+  tensor_order <- tensor[hc$order,]
+  return(tensor_order)
+}
+
+normalize_tensor <- function(tensor){
+  dims = c(10, dim(tensor)[-1])
+  n_tensor <- apply(tensor, c(seq_len(length(dims)))[-1], scale)
+}
+
+gheat <- function(tensor){
+  df <- melt(tensor)
+  colnames(df) <- c("Selected_Gene", "Sample", "Score")
+  heatmap2 <- ggplot(df, aes(x = Sample, y = Selected_Gene, fill = Score)) + 
+    geom_tile() +
+    labs(title = paste0("Heatmap of Gene Score for ", this_cell), ) +
+    theme_minimal() +
+    theme(axis.text.x = element_text(angle=90, vjust = 0.5, hjust = 0.5, colour = "black", size = 12)) +
+    theme(axis.title = element_text(size = 18)) +
+    #theme(axis.text.y = element_text(colour = "black")) + 
+    theme(axis.text.y = element_blank()) + 
+    theme(panel.grid=element_blank(), panel.grid.minor = element_blank(), panel.grid.major = element_blank()) +
+    scale_fill_gradientn("Score", colours = c("black", "green", "green", "green"), na.value = "white")
+    #scale_fill_gradientn("Score", colours = c("black", brewer.pal(9, "Spectral") ), na.value = "white")
+  save_path <- paste0("Graph/Heatmap/heatmap_", this_cell, ".svg")
+  ggsave(save_path, heatmap2, width = 10, height = 15)
+  return(heatmap2)
+}
+
+order_tensor <- genehc(All_tensor)
+#norm_tensor <- normalize_tensor(order_tensor)
+heatmap <- gheat(order_tensor)
+heatmap
+
+```
+
+```{r}
+
+```
+
+```{r}
+```
+
+```{r}
+```
+
